@@ -16,6 +16,9 @@
 #   $ ./mon_control.sh start                          on test server, specify k1|k2 or k0 for k1+k2
 
 # Known Issues
+# - multiple monitors running per instrument
+#   - does not currently track so additional processes continue to run after stop
+#   - workaround: run status and stop until all terminated
 # - running start|stop for k1 or k2 on test server
 #   - summary reports total of all servers of k1 or k2 total
 #   - workaround: run status separately
