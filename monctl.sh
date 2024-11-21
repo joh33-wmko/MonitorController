@@ -7,26 +7,26 @@
 #   servers are auto-detected
  
 # Usage:
-#   $ ./mon_control.sh [cmd] [svr]                    full command with args
+#   $ ./monctl.sh [cmd] [svr]                    full command with args
 #                                                     - cmd start|stop|[status], where status is default
 #                                                       for all servers
 #                                                     - svr [k1|k2|k0] where k0 is vm-koartibuild (k1 + k2)
 #                                                       for test server, only
 #   $ cd to script location
-#   $ ./mon_control.sh                                assumes status command on respective server
-#   $ ./mon_control.sh start|stop|[status]            full command with args
-#   $ ./mon_control.sh status                         default, same as previous
-#   $ ./mon_control.sh start|start                    on test server, specify k1|k2
+#   $ ./monctl.sh                                assumes status command on respective server
+#   $ ./monctl.sh start|stop|[status]            full command with args
+#   $ ./monctl.sh status                         default, same as previous
+#   $ ./monctl.sh start|start                    on test server, specify k1|k2
 #                                                     otherwise, k0 for k1+k2 is default
 
 # Note(s):
 # (1) On test server: 
 #     Running all (k0 default, k1+k2) vs specific server (start|stop|status k1|k2)
-#   $ ./mon_control.sh                                all: compares running processes to sum of k1 + k2
-#   $ ./mon_control.sh status                         same as all
-#   $ ./mon_control.sh start|stop                     runs on all k1 and k2 servers
+#   $ ./monctl.sh                                all: compares running processes to sum of k1 + k2
+#   $ ./monctl.sh status                         same as all
+#   $ ./monctl.sh start|stop                     runs on all k1 and k2 servers
 #
-#   $ ./mon_control.sh start|stop|status k1|k2        specific: runs for specified k1 or k2 server
+#   $ ./monctl.sh start|stop|status k1|k2        specific: runs for specified k1 or k2 server
 
 # Known Issues(s):
 # - multiple monitors running per instrument
