@@ -1,0 +1,26 @@
+
+
+./monctl.py runs in either of two modes:
+
+(M1) ./monctl.py start|stop 
+     routine mode to launch and terminate the monitor processs
+     default mode is routine
+
+(M2) ./monctl.py <ver>
+     release mode
+     - determine which monitors are running (ignore if new_version running)
+     - terminate current monitor processes, 
+       - track and retry termination for multiple processes per instrument
+         - terminate parent first
+           - wait (longer for drp processes)...
+           - if child process(es) do not terminate, terminate them
+     - install new version (what if activating older version?)
+       - if new_ver DNE (reverting to previous or other version)
+         - mkdir <new_ver>
+         - cp -pr cur_ver/ new_ver/
+         - verify with diff
+       - else
+         - unlink default
+         - ln -s ... default
+     - launch new default version of monitors
+
