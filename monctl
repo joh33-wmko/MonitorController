@@ -49,10 +49,16 @@
 ## ===== k1 monitors =====
 k1InstList=( "guiderk1" "hires" "kpf" "lris_blue" "lris_red" "mosfire" "osiris_img" "osiris_spec" )
 k1InstDrpList=( "kpf" "mosfire" "osiris" )
+#k1InstList=( "guiderk1" "hires" "lris_blue" "lris_red" "mosfire" "osiris_img" "osiris_spec" )
+#k1InstDrpList=( "mosfire" "osiris" )
 
 ## ===== k2 monitors =====
 k2InstList=( "deimos_fcs" "deimos_spec" "esi" "guiderk2" "kcwi_blue" "kcwi_fcs" "kcwi_red" "nirc2_unp" "nirc2" "nires_img" "nires_spec" "nirspec_scam" "nirspec_spec" )
 k2InstDrpList=( "kcwi" "deimos" "esi" "nirc2" "nires" )
+#k2InstList=( "deimos_fcs" "deimos_spec" "guiderk2" "kcwi_blue" "kcwi_fcs" "kcwi_red" "nirc2_unp" "nirc2" "nires_img" "nires_spec" "nirspec_scam" "nirspec_spec" )
+#k2InstDrpList=( "kcwi" "deimos" "nirc2" "nires" )
+#k2InstList=( "esi" )
+#k2InstDrpList=( "esi" )
 
 ## ===== k0 (all) monitors =====
 k0InstList=("${k1InstList[@]}" "${k2InstList[@]}")
@@ -123,8 +129,8 @@ case $cmd in
       /usr/local/koa/dep-rti/default/src/monitor_drp.sh ${instr}
       echo "Started: `ps -ef | grep ${instr} | grep -v grep | grep _drp | awk -F " " '{print $2" "$9" "$10}' | sort`"
       echo -e "Sleeping 30...\n"
-      #sleep 30   # ops
-      sleep 10   # test
+      #sleep 30   # ops (orig)
+      sleep 10   # test and ops
     done
     ;;
 
@@ -134,6 +140,7 @@ case $cmd in
       echo "Stopping Monitor for ${instr}"
       ps -ef | grep monitor | grep -v _drp | grep -v grep | grep ${instr}
       pid=`ps -ef | grep monitor | grep -v _drp | grep -v grep | grep ${instr} | awk -F " " '{print $2}'`
+      echo "PID = ${pid}"
       if [ ! -z ${pid} ]; then
         kill -15 $pid
         echo "Stopped PID=$pid"
@@ -148,6 +155,7 @@ case $cmd in
       echo "Stopping DRP Monitor for ${instr}"
       ps -ef | grep monitor_drp | grep -v grep | grep ${instr}
       pid=`ps -ef | grep monitor_drp | grep -v grep | grep ${instr} | awk -F " " '{print $2}'`
+      echo "PID = ${pid}"
       if [ ! -z ${pid} ]; then
         kill -15 $pid
         echo "Stopped PID=$pid"
