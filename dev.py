@@ -40,6 +40,9 @@
 import argparse
 import json
 import socket
+import subprocess as sp
+import sys
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description = "RTI Monitor Controller")
@@ -55,33 +58,110 @@ def parse_arguments():
     return args
 
 
-#import subprocess as sp
-#
-#fitsFile = '/s/sdata125/hires1/2024nov06/hires0002.fits OUTDIR DATE-OBS INSTRUME'
-#cmd = f'/usr/local/home/koarti/bin/fitshead {fitsFile}' 
-#proc = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
-#output, error = proc.communicate()
-#output = output.decode("ascii").rstrip()
-#print(output)
+def run_cmd(cmdstr):
+    # move path to config.live
+    proc = sp.Popen(cmdstr, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
+    output, error = proc.communicate()
+    output = output.decode("ascii").rstrip()
+    return output
 
+# these commands need to be run via ssh as koabld@vm-[k2]|koarti[build]
 
+def apply_update(cur_ver, new_ver):
+    print('monctl.py::apply_update()')
 
-# prep steps
-##! /usr/bin/bash
-#new_ver = $1
-#cd /koa/dep-rti
-#mkdir $new_ver
-#unlink default
-#ln -s $new_ver default
-#git status
-#git pull
-#git status
+    print(f"      svr     is {svr}")
+    print(f"      host     is {host}")
+    print(f"      cur_ver is {cur_ver}")
+    print(f"      new_ver is {new_ver}")
 
-# if $2 = recycle; then
-#     
+    #test
+    cmd_str = 'ls -l; date'
+    print(cmd_str)
+    resp = run_cmd(cmd_str)
+    print(resp)
+
+    # ssh from koarti@vm-koarti|vm-k2koarti|vm-koartibuild to user koartibld
+    #   so use absolute paths...
+    #
+    #cd execution dir
+    #cmd_str = 'cd /koa/dep_rti/'
+    #print(cmd_str)
+    #resp = run_cmd(cmd_str)
+    #print(resp)
+
+    #mkdir $new_ver
+    cmd_str = 'mkdir new_ver'
+    #cmd_str = f'ssh koartibld@vm-koartibuild mkdir /koa/dep-rti/{new_ver}'
+    #cmd_str = f'ssh koartibld@vm-koartibuild mkdir /usr/local/koa/dep-rti/${new_ver}'
+    print(cmd_str)
+    resp = run_cmd(cmd_str)
+    print(resp)
+
+    #cp -pr $cur_ver $new_ver
+    cmd_str = 'cp -pr {cur_ver} {new_ver}'
+    #cmd_str = f'ssh koartibld@vm-koartibuild cp -pr /koa/dep-rti/{cur_ver} /koa/dep-rti/{new_ver}'
+    #cmd_str = f'ssh koartibld@vm-koartibuild cp -pr /koa/dep-rti/${cur_ver} /koa/dep-rti/${new_ver}'
+    #cmd-str = f'ssh koartibld@vm-koartibuild cp -pr /usr/local/koa/dep-rti/${cur_ver} /usr/local/koa/dep-rti/${new_ver}'
+    print(cmd_str)
+    resp = run_cmd(cmd_str)
+    print(resp)
+
+    #unlink default
+    cmd_str = 'unlink default'
+    #cmd_str = f'ssh koartibld@vm-koartibuild unlink /koa/dep-rti/default'
+    print(cmd_str)
+    #resp = run_cmd(cmd_str)
+    print(resp)
+
+    #ln -s $new_ver default
+    #cmd_str = 'ln -s new_ver default2'
+    #cmd_str = f'ssh koartibld@vm-koartibuild ln -s /koa/dep-rti/2.6.0 /koa/dep-rti/default'
+    #cmd_str = f'ssh koartibld@vm-koartibuild ln -s /koa/dep-rti/${new_ver} /koa/dep-rti/default'
+    print(cmd_str)
+    resp = run_cmd(cmd_str)
+    print(resp)
+
+    #git status
+    cmd_str = 'git status'
+    cmd_str = f'ssh koartibld@vm-koartibuild cd /koa/koa-rti/{cur_ver}; git status'
+    print(cmd_str)
+    resp = run_cmd(cmd_str)
+    print(resp)
+
+    #git pull
+    cmd_str = 'git pull'
+    #cmd_str = f'ssh koartibld@vm-koartibuild cd /koa/koa-rti/{new_ver}; git pull'
+    print(cmd_str)
+    resp = run_cmd(cmd_str)
+    print(resp)
+
+    #git status
+    cmd_str = 'git status'
+    cmd_str = f'ssh koartibld@vm-koartibuild cd /koa/koa-rti/{new_ver}; git status'
+    print(cmd_str)
+    resp = run_cmd(cmd_str)
+    print(resp)
+
+    #git diff contents of curr and new dirs
+    cmd_str = 'git diff cur_ver new_ver'
+    #cmd_str = f'ssh koartibld@vm-koartibuild git diff /koa/dep-rti/2.5.0 /koa/dep-rti/2.6.0'
+    #cmd_str = f'ssh koartibld@vm-koartibuild git diff /koa/dep-rti/{cur_ver} /koa/dep-rti/{new_ver}'
+    print(cmd_str)
+    resp = run_cmd(cmd_str)
+    print(resp)
+
+    # restart new version of monitors
+    print('monctl.sh::stop_monitors()')
+    #stop_monitors()
+    print('monctl.sh::start_monitors()')
+    #start_monitors()
+
+    return
+
 
 def display_status():
-    print("monctlpy::display_status()")
+    print("monctl.py::display_status()")
 
 
 def start_monitors(): # L0 and DRPs
@@ -94,12 +174,12 @@ def stop_monitors():  # L0 and DRPs
 
 def process_release(cur_ver, new_ver):
     print("monctl.py::process_release()")
+    apply_update(cur_ver,new_ver)
+    
+    return
 
-
-import sys
 
 def main():
-    print("monctl.py::main()")
     args = parse_arguments()
 
     if args.verbose:
@@ -121,33 +201,43 @@ def main():
     else:
         print(f"Invalid server: {host} - RTI server required.")
 
-    print(f"processing svr: {svr} {host}")
+    print(f"Server: {svr} {host}")
+    print("monctl.py::main()")
 
-
-    import re
-    pattern = r'^\d+\.\d+\.\d+$'
-    validVersion = bool(re.match(pattern, cmd))
-    if validVersion:
-        new_ver = cmd
-        cmd = 'rel'
 
     # determine cmd
     if args.cmd:
        cmd = args.cmd
+    #else:
+        #pass
+
+    #import re
+    #pattern = r'^\d+\.\d+\.\d+$'
+    #validVersion = bool(re.match(pattern, cmd))
+    #if validVersion:
+    #    new_ver = cmd
+    #    cmd = 'rel'
+
+    # accept without checking for now...
+    if cmd not in ("start", "stop", "status"):
+        new_ver = cmd
+
+        cmd_str = "ls -l /koa/dep-rti/default | awk '{print $11}'"
+        cur_ver = run_cmd(cmd_str)
+        cmd = 'rel'
 
     if cmd == "status":
+        print(f"   Processing cmd: {cmd}")
         display_status()
-        print(f"Processing cmd: {cmd}")
     elif cmd == "start":
+        print(f"   Processing cmd: {cmd}")
         start_monitors() # L0 and DRPs
-        print(f"Processing cmd: {cmd}")
     elif cmd == "stop":
+        print(f"   Processing cmd: {cmd}")
         stop_monitors()  # L0 and DRPs
-        print(f"Processing cmd: {cmd}")
-    elif cmd == "rel";
-        cur_ver = ls -l
-        #process_release(cur_ver, new_ver) # assumes ...
-        #print(f"Processing cmd: {cmd}")
+    elif cmd == "rel":
+        print(f"   Processing cmd: {cmd}")
+        process_release(cur_ver, new_ver) # assumes ...
     else:
         print(f"cmd not recognized: {cmd}")
         sys.exit()
