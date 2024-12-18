@@ -39,26 +39,35 @@
 # - start should only launch processes that are not already running (currently restarts everything)
 # - implement skip-* lists (add ESI as default on k2?)
 # - hostnames to config.live
-# - push to wmko koa repo
+# - push to wmko koa repo (currently in joh33-wmko)
 # - report missing (not running) L0 and DRP monitors
 # - track number of monitors per instrument (track, wait or terminate, verify)
-# - separate status k1|k2 on test server (uses all, but start|stop are separate)
 # - (opt) track number of processes per server (on vm-koartibuild k0-1 and k0-2)
+# - Release Mode
 # - (opt) convert to Python 3
 
 ## ===== k1 monitors =====
-k1InstList=( "guiderk1" "hires" "kpf" "lris_blue" "lris_red" "mosfire" "osiris_img" "osiris_spec" )
-k1InstDrpList=( "kpf" "mosfire" "osiris" )
-#k1InstList=( "guiderk1" "hires" "lris_blue" "lris_red" "mosfire" "osiris_img" "osiris_spec" )
-#k1InstDrpList=( "mosfire" "osiris" )
+
+# k1 L0 monitors: all, withough KPF
+k1InstList=( "guiderk1" "hires" "kpf" "lris_blue" "lris_red" "mosfire" "osiris_img" "osiris_spec" )   # all
+#k1InstList=( "guiderk1" "hires" "lris_blue" "lris_red" "mosfire" "osiris_img" "osiris_spec" )         # without KPF
+
+# k1 DRP minitors: all, without KPF
+k1InstDrpList=( "kpf" "mosfire" "osiris" )   # all
+#k1InstDrpList=( "mosfire" "osiris" )         # without KPF
+#k1InstDrpList=( "kpf" )                      # only KPF
 
 ## ===== k2 monitors =====
-k2InstList=( "deimos_fcs" "deimos_spec" "esi" "guiderk2" "kcwi_blue" "kcwi_fcs" "kcwi_red" "nirc2_unp" "nirc2" "nires_img" "nires_spec" "nirspec_scam" "nirspec_spec" )
-k2InstDrpList=( "kcwi" "deimos" "esi" "nirc2" "nires" )
-#k2InstList=( "deimos_fcs" "deimos_spec" "guiderk2" "kcwi_blue" "kcwi_fcs" "kcwi_red" "nirc2_unp" "nirc2" "nires_img" "nires_spec" "nirspec_scam" "nirspec_spec" )
-#k2InstDrpList=( "kcwi" "deimos" "nirc2" "nires" )
-#k2InstList=( "esi" )
-#k2InstDrpList=( "esi" )
+
+# k2 L0 monitors: all, without ESI, ESI only
+k2InstList=( "deimos_fcs" "deimos_spec" "esi" "guiderk2" "kcwi_blue" "kcwi_fcs" "kcwi_red" "nirc2_unp" "nirc2" "nires_img" "nires_spec" "nirspec_scam" "nirspec_spec" )   # all
+#k2InstList=( "deimos_fcs" "deimos_spec" "guiderk2" "kcwi_blue" "kcwi_fcs" "kcwi_red" "nirc2_unp" "nirc2" "nires_img" "nires_spec" "nirspec_scam" "nirspec_spec" )         # without ESI
+#k2InstList=( "esi" )   # only ESI
+
+# k2 DRP monitors: all, without ESI, ESI only
+k2InstDrpList=( "kcwi" "deimos" "esi" "nirc2" "nires" )   # all
+#k2InstDrpList=( "kcwi" "deimos" "nirc2" "nires" )       # without ESI
+#k2InstDrpList=( "esi" )                                 # only ESI
 
 ## ===== k0 (all) monitors =====
 k0InstList=("${k1InstList[@]}" "${k2InstList[@]}")
@@ -113,54 +122,71 @@ case $cmd in
     ;;
 
   "start")
-    echo "Launching $svr Monitors"
+    echo "Launching $svr Monitors"; echo
     for instr in "${instList[@]}"; do
-      echo "Starting: Monitor for ${instr}"
-      /usr/local/koa/dep-rti/default/src/monitor.sh ${instr}
-      echo "Started: `ps -ef | grep ${instr} | grep -v grep | grep -v _drp | awk -F " " '{print $2" "$9" "$10}' | sort`"
-      echo -e "Sleeping 10...\n"
-      #sleep 10   # ops
-      sleep 5    # test
+      echo "   Checking monitor for ${instr}"
+      pid=`ps -ef | grep monitor | grep -v _drp | grep -v grep | grep ${instr} | awk -F " " '{print $2}'`
+      #echo "   PID = ${pid}"
+      if [ -z ${pid} ]; then
+        echo "   ${instr} monitor is not running"
+        /usr/local/koa/dep-rti/default/src/monitor.sh ${instr}
+        pid=`ps -ef | grep monitor | grep -v _drp | grep -v grep | grep ${instr} | awk -F " " '{print $2}'`
+        echo "   Started PID=$pid"
+        ps -ef | grep monitor | grep -v _drp | grep -v grep | grep ${instr}
+        echo -e "   Sleeping 10...\n"
+        sleep 10   # ops
+        #sleep 3    # test
+      else
+        echo -e "   ${instr} monitor not started since PID=$pid is already running\n"
+      fi
     done
 
-    echo "Launching $svr DRP Monitors"
+    echo "Launching $svr DRP Monitors"; echo
     for instr in "${instDrpList[@]}"; do
-      echo "Starting: DRP Monitor for ${instr}"
-      /usr/local/koa/dep-rti/default/src/monitor_drp.sh ${instr}
-      echo "Started: `ps -ef | grep ${instr} | grep -v grep | grep _drp | awk -F " " '{print $2" "$9" "$10}' | sort`"
-      echo -e "Sleeping 30...\n"
-      #sleep 30   # ops (orig)
-      sleep 10   # test and ops
+      echo "   Checking DRP monitor for ${instr}"
+      pid=`ps -ef | grep monitor_drp | grep -v grep | grep ${instr} | awk -F " " '{print $2}'`
+      if [ -z ${pid} ]; then
+        echo -e "   ${instr} DRP Monitor is not running"
+        /usr/local/koa/dep-rti/default/src/monitor_drp.sh ${instr}
+        pid=`ps -ef | grep monitor_drp | grep -v grep | grep ${instr} | awk -F " " '{print $2}'`
+        echo "   Started PID=$pid"
+        ps -ef | grep monitor_drp | grep -v grep | grep ${instr}
+        echo -e "   Sleeping 10...\n"
+        sleep 10   # ops
+        #sleep 3    # test
+      else
+        echo -e "   ${instr} DRP monitor not started since PID=$pid is already running\n"
+      fi
     done
     ;;
 
   "stop")
     echo "Terminating $svr Monitors"
     for instr in ${instList[@]}; do
-      echo "Stopping Monitor for ${instr}"
+      echo "   Stopping Monitor for ${instr}"
       ps -ef | grep monitor | grep -v _drp | grep -v grep | grep ${instr}
       pid=`ps -ef | grep monitor | grep -v _drp | grep -v grep | grep ${instr} | awk -F " " '{print $2}'`
-      echo "PID = ${pid}"
+      echo "   PID = ${pid}"
       if [ ! -z ${pid} ]; then
         kill -15 $pid
-        echo "Stopped PID=$pid"
+        echo "   Stopped PID=$pid"
       else
-        echo "${instr} Monitor is not running"
+        echo "   ${instr} Monitor is not running"
       fi
-      #echo -e "If [monitor_drp.py] <defunct>, run again...\n"   # refine to auto search, sleep, recheck, stop
+      #echo -e "   If [monitor_drp.py] <defunct>, run again...\n"   # refine to auto search, sleep, recheck, stop
     done
 
-    echo "Terminating $svr DRP Monitors"
+    echo "   Terminating $svr DRP Monitors"
     for instr in ${instDrpList[@]}; do
-      echo "Stopping DRP Monitor for ${instr}"
+      echo "   Stopping DRP Monitor for ${instr}"
       ps -ef | grep monitor_drp | grep -v grep | grep ${instr}
       pid=`ps -ef | grep monitor_drp | grep -v grep | grep ${instr} | awk -F " " '{print $2}'`
-      echo "PID = ${pid}"
+      echo "   PID = ${pid}"
       if [ ! -z ${pid} ]; then
         kill -15 $pid
-        echo "Stopped PID=$pid"
+        echo "   Stopped PID=$pid"
       else
-        echo -e "${instr} DRP Monitor is not running\n"
+        echo -e "   ${instr} DRP Monitor is not running\n"
       fi
     done
     ;;
@@ -175,12 +201,12 @@ echo -e "Current Monitor Processes Running on ${hostname} (${svr}):\n"
 
 mon_procs_lst=`ps -ef | grep monitor | grep -v grep | sort | grep -v _drp`
 mon_procs_cnt=`ps -ef | grep monitor | grep -v grep | sort | grep -v _drp | wc -l`
-echo -e "L0 (Raw) Monitors ${mon_procs_cnt} of ${#instList[@]} [${instList[@]}]\n"
+echo -e "L0 (Raw) Monitors ${mon_procs_cnt} of ${#instList[@]} base instrument processes\n[${instList[@]}]\n"
 echo -e "${mon_procs_lst[@]}"
 
 drp_procs_lst=`ps -ef | grep monitor | grep -v grep | sort | grep _drp`
 drp_procs_cnt=`ps -ef | grep monitor | grep -v grep | sort | grep _drp | wc -l`
-echo -e "\nDRP Monitors ${drp_procs_cnt} of ${#instDrpList[@]} [${instDrpList[@]}]\n"
+echo -e "\nDRP Monitors ${drp_procs_cnt} of ${#instDrpList[@]} base instrument processes\n[${instDrpList[@]}]\n"
 echo -e "${drp_procs_lst[@]}"
 
 #echo -e "If [monitor_drp.py] <defunct>, run again...\n"   # refine to auto search, sleep, recheck, stop
